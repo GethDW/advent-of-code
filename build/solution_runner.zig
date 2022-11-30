@@ -32,7 +32,7 @@ fn AnswerError(comptime part: type) type {
 inline fn run(comptime F: type, part: F, allocator: std.mem.Allocator) !AnswerType(F) {
     const args = switch (ArgsTuple(F)) {
         Tuple(&[_]type{}) => .{}, // `struct {}` is still a struct.
-        struct { Allocator } => .{allocator},
+        Tuple(&[_]type{Allocator}) => .{allocator},
         else => @compileError("solve arguments are either empty or std.mem.Allocator"),
     };
     return switch (AnswerError(F)) {

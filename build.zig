@@ -6,6 +6,7 @@ const Solution = struct {
 };
 fn getSolutions(b: *std.build.Builder) []const Solution {
     var list = std.ArrayList(Solution).init(b.allocator);
+    defer list.deinit();
 
     var src = std.fs.openDirAbsolute(b.pathFromRoot("src"), .{}) catch unreachable;
     defer src.close();
@@ -19,7 +20,7 @@ fn getSolutions(b: *std.build.Builder) []const Solution {
         }) catch unreachable;
     }
 
-    return list.toOwnedSlice();
+    return list.toOwnedSlice() catch unreachable;
 }
 
 const pkgs: []const std.build.Pkg = &.{};
