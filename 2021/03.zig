@@ -26,19 +26,21 @@ pub fn part1() u64 {
     return std.math.mulWide(u16, gamma, epsilon);
 }
 
-fn filter(bit_count: u4, most_common: bool, ns: *std.ArrayList(u16)) u16 {
+inline fn filter(ns: []const u16, comptime most_common: bool, bit_count: u4, set: *std.DynamicBitSet) u16 {
+    std.debug.assert(set.unmanaged.bit_length == ns.len);
     var mask: u16 = @as(u16, 1) << bit_count - 1; // bit to check
     while (mask != 0) : (mask >>= 1) {
-        var i: usize = 0;
         var set_count: usize = 0;
-        for (ns.items) |num| {
-            if (mask & num != 0) set_count += 1;
+        var iter = set.iterator(.{});
+        while (iter.next()) |i| {
+            if (mask & ns[i] != 0) set_count += 1;
         }
-        const unset_count = ns.items.len - set_count;
+        const unset_count = set.count() - set_count;
 
-        while (i < ns.items.len) {
-            if (ns.items.len == 1) return ns.items[0];
-            const is_set = mask & ns.items[i] != 0;
+        iter = set.iterator(.{});
+        while (iter.next()) |i| {
+            if (set.count() == 1) return ns[set.findFirstSet().?];
+            const is_set = mask & ns[i] != 0;
             const should_be_set = if (most_common)
                 set_count >= unset_count
             else
@@ -46,8 +48,8 @@ fn filter(bit_count: u4, most_common: bool, ns: *std.ArrayList(u16)) u16 {
             if ((should_be_set and !is_set) or
                 (!should_be_set and is_set))
             {
-                _ = ns.orderedRemove(i);
-            } else i += 1;
+                set.unset(i);
+            }
         }
     }
     unreachable;
@@ -62,10 +64,10 @@ pub fn part2(allocator: std.mem.Allocator) !u64 {
         try nums.append(try std.fmt.parseInt(u16, line, 2));
     }
 
-    const copy = try nums.clone();
-    const oxygen = filter(line_len, true, &nums);
-    nums.deinit();
-    nums = copy;
-    const carbon = filter(line_len, false, &nums);
+    var set = try std.DynamicBitSet.initFull(allocator, nums.items.len);
+    defer set.deinit();
+    const oxygen = filter(nums.items, true, line_len, &set);
+    set.setRangeValue(.{ .start = 0, .end = nums.items.len }, true);
+    const carbon = filter(nums.items, false, line_len, &set);
     return std.math.mulWide(u16, oxygen, carbon);
 }
