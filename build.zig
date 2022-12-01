@@ -4,11 +4,11 @@ const Solution = struct {
     name: []const u8,
     path: []const u8,
 };
-fn getSolutions(b: *std.build.Builder) []const Solution {
+fn getSolutions(b: *std.build.Builder, year: []const u8) []const Solution {
     var list = std.ArrayList(Solution).init(b.allocator);
     defer list.deinit();
 
-    var src = std.fs.openDirAbsolute(b.pathFromRoot("src"), .{}) catch unreachable;
+    var src = std.fs.openDirAbsolute(b.pathFromRoot(year), .{}) catch return &.{};
     defer src.close();
     var n: u8 = 1;
     while (n <= 25) : (n += 1) {
@@ -16,50 +16,31 @@ fn getSolutions(b: *std.build.Builder) []const Solution {
         src.access(path, .{}) catch continue;
         list.append(Solution{
             .name = b.fmt("{d:0>2}", .{n}),
-            .path = b.pathJoin(&.{ "src/", path }),
+            .path = b.pathJoin(&.{ year, path }),
         }) catch unreachable;
     }
 
     return list.toOwnedSlice() catch unreachable;
 }
 
+const Action = enum { run, @"test", alloc_test, compile };
 const pkgs: []const std.build.Pkg = &.{};
-
-pub fn build(b: *std.build.Builder) !void {
-    // remove install and uninstall steps, and override default step.
-    b.top_level_steps.clearRetainingCapacity();
-    const all = b.step("all", "Run all solutions");
-    b.default_step = all;
-
-    // option to decide what to do with the chosen solution.
-    const action = b.option(
-        enum { run, @"test", alloc_test, compile },
-        "mode",
-        "Choose what to do with a solution (default is run)",
-    ) orelse .run;
-
-    const filter = b.option([]const u8, "filter", "Test filter");
-
-    const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
-
-    // lib tests
-    for (pkgs) |pkg| {
-        const test_step = b.step(pkg.name, b.fmt("Run {s} tests", .{pkg.name}));
-        const test_exe = b.addTest(pkg.source.path);
-        for (pkgs) |p| test_exe.addPackage(p);
-        test_exe.filter = filter;
-        test_exe.setBuildMode(mode);
-        test_exe.setTarget(target);
-        test_step.dependOn(&test_exe.step);
-    }
-
-    // loop over solutions and configure each step accordingly.
-    const solutions = getSolutions(b);
+fn addSolutions(
+    b: *std.build.Builder,
+    all: *std.build.Step,
+    action: Action,
+    filter: ?[]const u8,
+    mode: std.builtin.Mode,
+    target: std.zig.CrossTarget,
+    year: []const u8,
+) void {
+    const solutions = getSolutions(b, year);
     for (solutions) |solution| {
-        const step = b.step(solution.name, b.fmt("Run solution #{s}", .{solution.name}));
+        const full_name = b.fmt("{s}-{s}", .{ year, solution.name });
+        const step = b.step(full_name, b.fmt("Run solution year {s}, day {s}", .{ year, solution.name }));
         var config = b.addOptions();
         config.addOption([]const u8, "number", solution.name);
+        config.addOption([]const u8, "year", year);
 
         const action_step = switch (action) {
             inline .compile, .run => blk: {
@@ -110,5 +91,38 @@ pub fn build(b: *std.build.Builder) !void {
         };
         step.dependOn(action_step);
         all.dependOn(action_step);
+    }
+}
+pub fn build(b: *std.build.Builder) !void {
+    // remove install and uninstall steps, and override default step.
+    b.top_level_steps.clearRetainingCapacity();
+    const all = b.step("all", "Run all solutions");
+    b.default_step = all;
+
+    // option to decide what to do with the chosen solution.
+    const action = b.option(
+        Action,
+        "mode",
+        "Choose what to do with a solution (default is run)",
+    ) orelse .run;
+
+    const filter = b.option([]const u8, "filter", "Test filter");
+
+    const target = b.standardTargetOptions(.{});
+    const mode = b.standardReleaseOptions();
+
+    // lib tests
+    for (pkgs) |pkg| {
+        const test_step = b.step(pkg.name, b.fmt("Run {s} tests", .{pkg.name}));
+        const test_exe = b.addTest(pkg.source.path);
+        for (pkgs) |p| test_exe.addPackage(p);
+        test_exe.filter = filter;
+        test_exe.setBuildMode(mode);
+        test_exe.setTarget(target);
+        test_step.dependOn(&test_exe.step);
+    }
+
+    for ([_][]const u8{ "2021", "2022" }) |year| {
+        addSolutions(b, all, action, filter, mode, target, year);
     }
 }
