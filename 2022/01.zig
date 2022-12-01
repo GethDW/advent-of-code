@@ -1,4 +1,3 @@
-const example = @embedFile("01_example.txt");
 const input = @embedFile("01.txt");
 
 const std = @import("std");
