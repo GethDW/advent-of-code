@@ -52,7 +52,7 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
     var time: u64 = 0;
     for (format orelse &[_]Fmt{.answer}) |fmt| {
         switch (fmt) {
-            .answer, .time, .max_mem, .tot_mem, .allocations => {
+            .answer, .time, .max_memory, .total_memory, .allocations => {
                 if (answer) |_| {} else {
                     var timer = try std.time.Timer.start();
                     answer = try run(F, part, allocator);
@@ -67,10 +67,10 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
                 else => try writer.print("{any}", .{answer.?}),
             },
             .time => try writer.print("{}", .{std.fmt.fmtDuration(time)}),
-            .max_mem => try writer.print("{}", .{std.fmt.fmtIntSizeDec(stat_allocator.max_bytes)}),
-            .tot_mem => try writer.print("{}", .{std.fmt.fmtIntSizeDec(stat_allocator.total_bytes)}),
+            .max_memory => try writer.print("{}", .{std.fmt.fmtIntSizeDec(stat_allocator.max_bytes)}),
+            .total_memory => try writer.print("{}", .{std.fmt.fmtIntSizeDec(stat_allocator.total_bytes)}),
             .allocations => try writer.print("{d}", .{stat_allocator.allocs}),
-            .build => try writer.print("{s}", .{@tagName(builtin.mode)}),
+            .build_mode => try writer.print("{s}", .{@tagName(builtin.mode)}),
             .string => |str| try writer.writeAll(str),
         }
     }
@@ -79,12 +79,32 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
 
 const Fmt = union(enum) {
     time,
-    max_mem,
-    tot_mem,
+    max_memory,
+    total_memory,
     allocations,
     answer,
-    build,
+    build_mode,
     string: []const u8,
+
+    const map = std.ComptimeStringMap(Fmt, blk: {
+        const count = count: {
+            var tmp = 0;
+            const fields = std.meta.fields(Fmt);
+            for (fields) |field| {
+                if (field.field_type == void) tmp += 1;
+            }
+            break :count tmp;
+        };
+        var ret: [count]struct { []const u8, Fmt } = undefined;
+        var i: usize = 0;
+        for (std.meta.fields(Fmt)) |field| {
+            if (field.field_type == void) {
+                ret[i] = .{ field.name, @unionInit(Fmt, field.name, {}) };
+                i += 1;
+            }
+        }
+        break :blk ret;
+    });
 
     pub fn parse(allocator: Allocator, fmt: []const u8) ![]const Fmt {
         var format_list = std.ArrayList(Fmt).init(allocator);
@@ -99,13 +119,17 @@ const Fmt = union(enum) {
 
                     if (specifier.len == 1) switch (specifier[0]) {
                         't' => try format_list.append(.time),
-                        'm' => try format_list.append(.max_mem),
-                        'M' => try format_list.append(.tot_mem),
+                        'm' => try format_list.append(.max_memory),
+                        'M' => try format_list.append(.total_memory),
                         'A' => try format_list.append(.allocations),
                         'a' => try format_list.append(.answer),
-                        'b' => try format_list.append(.build),
+                        'b' => try format_list.append(.build_mode),
                         else => die("unknown format specifier {{{s}}}\n{s}\n", .{ specifier, usage }, 1),
-                    } else die("unknown format specifier {{{s}}}\n{s}\n", .{ specifier, usage }, 1);
+                    } else if (map.get(specifier)) |f| {
+                        try format_list.append(f);
+                    } else {
+                        die("unknown format specifier {{{s}}}\n{s}\n", .{ specifier, usage }, 1);
+                    }
                 },
                 else => {
                     const end = mem.indexOfAnyPos(u8, fmt, i, "{") orelse fmt.len;
@@ -143,12 +167,12 @@ const usage =
     \\  --fmt <string>  provide a format string to cutomize output,
     \\                  format specifiers are marked by surrounding
     \\                  with {}:
-    \\                      {a}     solution answer
-    \\                      {m}     max memory used
-    \\                      {M}     total memory used
-    \\                      {A}     the number of allocations made
-    \\                      {t}     time the solution took to run
-    \\                      {b}     build mode
+    \\                      {a|answer}          solution answer
+    \\                      {m|max_memory}      max memory used
+    \\                      {M|total_memory}    total memory used
+    \\                      {A|allocations}     the number of allocations made
+    \\                      {t|time}            time the solution took to run
+    \\                      {b|build_mode}      build mode
 ;
 const wants_arena: bool = if (@hasDecl(solution, "arena")) solution.arena else false;
 pub fn main() !void {
