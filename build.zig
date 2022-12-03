@@ -36,8 +36,7 @@ fn addSolutions(
 ) void {
     const solutions = getSolutions(b, year);
     for (solutions) |solution| {
-        const full_name = b.fmt("{s}-{s}", .{ year, solution.name });
-        const step = b.step(full_name, b.fmt("Run solution year {s}, day {s}", .{ year, solution.name }));
+        const step = b.step(solution.name, b.fmt("Run solution for day {s} ({s})", .{ solution.name, year }));
         var config = b.addOptions();
         config.addOption([]const u8, "number", solution.name);
         config.addOption([]const u8, "year", year);
@@ -93,10 +92,12 @@ fn addSolutions(
         all.dependOn(action_step);
     }
 }
+const Year = enum { @"2021", @"2022" };
 pub fn build(b: *std.build.Builder) !void {
+    const year = @tagName(b.option(Year, "year", "Select a year") orelse .@"2022");
     // remove install and uninstall steps, and override default step.
     b.top_level_steps.clearRetainingCapacity();
-    const all = b.step("all", "Run all solutions");
+    const all = b.step("all", b.fmt("Run all solutions ({s})", .{year}));
     b.default_step = all;
 
     // option to decide what to do with the chosen solution.
@@ -122,7 +123,5 @@ pub fn build(b: *std.build.Builder) !void {
         test_step.dependOn(&test_exe.step);
     }
 
-    for ([_][]const u8{ "2021", "2022" }) |year| {
-        addSolutions(b, all, action, filter, mode, target, year);
-    }
+    addSolutions(b, all, action, filter, mode, target, year);
 }

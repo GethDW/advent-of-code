@@ -203,10 +203,10 @@ pub fn main() !void {
 
     const stdout = std.io.getStdOut().writer();
     if (comptime std.meta.trait.hasFn("part1")(solution)) {
-        try stdout.print("{s}-{s}-1: ", .{ config.year, config.number });
+        try stdout.writeAll("part 1: ");
         try solve(solution.part1, allocator, use_arena, format, stdout);
         if (comptime std.meta.trait.hasFn("part2")(solution)) {
-            try stdout.print("{s}-{s}-2: ", .{ config.year, config.number });
+            try stdout.writeAll("part 2: ");
             try solve(solution.part2, allocator, use_arena, format, stdout);
         }
     } else @compileError("missing `pub fn part1`");
