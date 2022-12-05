@@ -64,7 +64,10 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
         switch (fmt) {
             .answer => switch (@typeInfo(AnswerType(F))) {
                 .Int, .Float => try writer.print("{d}", .{answer.?}),
-                else => try writer.print("{any}", .{answer.?}),
+                else => switch (AnswerType(F)) {
+                    []u8, []const u8 => try writer.print("{s}", .{answer.?}),
+                    else => try writer.print("{any}", .{answer.?}),
+                },
             },
             .time => try writer.print("{}", .{std.fmt.fmtDuration(time)}),
             .max_memory => try writer.print("{}", .{std.fmt.fmtIntSizeDec(stat_allocator.max_bytes)}),
@@ -75,6 +78,17 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
         }
     }
     try writer.writeByte('\n');
+
+    if (answer) |a| {
+        switch (@typeInfo(AnswerType(F))) {
+            .Pointer => |info| switch (info.size) {
+                .Slice => allocator.free(a),
+                .One => allocator.destroy(a),
+                else => @compileError("answer type may only be single item pointers (*) or slices ([])"),
+            },
+            else => {},
+        }
+    }
 }
 
 const Fmt = union(enum) {
