@@ -64,6 +64,12 @@ fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, w
         switch (fmt) {
             .answer => switch (@typeInfo(AnswerType(F))) {
                 .Int, .Float => try writer.print("{d}", .{answer.?}),
+                .Array => |info| switch (info.child) {
+                    u8 => try writer.print("{s}", .{answer.?}),
+                    else => switch (@typeInfo(info.child)) {
+                        .Int, .Float => try writer.print("{d}", .{answer.?}),
+                    },
+                },
                 else => switch (AnswerType(F)) {
                     []u8, []const u8 => try writer.print("{s}", .{answer.?}),
                     else => try writer.print("{any}", .{answer.?}),
