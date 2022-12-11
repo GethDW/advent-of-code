@@ -15,7 +15,7 @@ fn returnInfo(comptime part: type) struct {
     error_set: ?type,
 } {
     const ErrorRetureType = switch (@typeInfo(part)) {
-        .Fn, .BoundFn => |f| f.return_type orelse unreachable,
+        .Fn => |f| f.return_type orelse unreachable,
         else => unreachable,
     };
     return switch (@typeInfo(ErrorRetureType)) {
