@@ -36,8 +36,8 @@ inline fn run(comptime F: type, part: F, allocator: std.mem.Allocator) !AnswerTy
         else => @compileError("solve arguments are either empty or std.mem.Allocator"),
     };
     return switch (AnswerError(F)) {
-        error{} => @call(.{ .modifier = .always_inline }, part, args),
-        else => try @call(.{ .modifier = .always_inline }, part, args),
+        error{} => @call(.always_inline, part, args),
+        else => try @call(.always_inline, part, args),
     };
 }
 const ArgsTuple = std.meta.ArgsTuple;
@@ -111,14 +111,14 @@ const Fmt = union(enum) {
             var tmp = 0;
             const fields = std.meta.fields(Fmt);
             for (fields) |field| {
-                if (field.field_type == void) tmp += 1;
+                if (field.type == void) tmp += 1;
             }
             break :count tmp;
         };
         var ret: [count]struct { []const u8, Fmt } = undefined;
         var i: usize = 0;
         for (std.meta.fields(Fmt)) |field| {
-            if (field.field_type == void) {
+            if (field.type == void) {
                 ret[i] = .{ field.name, @unionInit(Fmt, field.name, {}) };
                 i += 1;
             }
@@ -171,7 +171,7 @@ const Flags = enum {
     const map = std.ComptimeStringMap(Flags, blk: {
         const info = @typeInfo(Flags).Enum;
         var ret: [info.fields.len]struct { []const u8, Flags } = undefined;
-        for (info.fields) |field, i| ret[i] = .{ "--" ++ field.name, @intToEnum(Flags, field.value) };
+        for (info.fields, &ret) |field, *r| r.* = .{ "--" ++ field.name, @intToEnum(Flags, field.value) };
         break :blk ret;
     });
 

@@ -19,7 +19,7 @@ pub fn part2() !u32 {
     var lines = std.mem.tokenize(u8, input, "\n");
     var window: [3]u32 = undefined;
     var prev: u32 = 0;
-    for (window) |*item| {
+    for (&window) |*item| {
         item.* = try std.fmt.parseInt(u32, lines.next().?, 10);
         prev += item.*;
     }

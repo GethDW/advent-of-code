@@ -24,13 +24,12 @@ fn getSolutions(b: *std.build.Builder, year: []const u8) []const Solution {
 }
 
 const Action = enum { run, @"test", alloc_test, compile };
-const pkgs: []const std.build.Pkg = &.{};
 fn addSolutions(
-    b: *std.build.Builder,
-    all: *std.build.Step,
+    b: *std.Build,
+    all: *std.Build.Step,
     action: Action,
     filter: ?[]const u8,
-    mode: std.builtin.Mode,
+    opt: std.builtin.Mode,
     target: std.zig.CrossTarget,
     year: []const u8,
 ) void {
@@ -44,15 +43,16 @@ fn addSolutions(
         const action_step = switch (action) {
             inline .compile, .run => blk: {
                 // executable for run action.
-                const exe = b.addExecutable(solution.name, "build/solution_runner.zig");
-                exe.addPackage(std.build.Pkg{
-                    .name = "solution",
-                    .source = .{ .path = solution.path },
-                    .dependencies = pkgs,
+                const exe = b.addExecutable(.{
+                    .name = solution.name,
+                    .root_source_file = .{ .path = "build/solution_runner.zig" },
+                    .target = target,
+                    .optimize = opt,
+                });
+                exe.addAnonymousModule("solution", .{
+                    .source_file = .{ .path = solution.path },
                 });
                 exe.addOptions("config", config);
-                exe.setBuildMode(mode);
-                exe.setTarget(target);
 
                 switch (comptime action) {
                     .compile => break :blk &exe.step,
@@ -67,23 +67,24 @@ fn addSolutions(
             },
             .@"test" => blk: {
                 // test for solution.
-                const test_exe = b.addTest(solution.path);
-                test_exe.setBuildMode(mode);
-                test_exe.setTarget(target);
-                inline for (pkgs) |pkg| test_exe.addPackage(pkg);
+                const test_exe = b.addTest(.{
+                    .root_source_file = .{ .path = solution.path },
+                    .target = target,
+                    .optimize = opt,
+                });
                 test_exe.filter = filter;
                 break :blk &test_exe.step;
             },
             .alloc_test => blk: {
-                const test_exe = b.addTest("build/solution_runner.zig");
-                test_exe.filter = "__allocations";
-                test_exe.addPackage(std.build.Pkg{
-                    .name = "solution",
-                    .source = .{ .path = solution.path },
-                    .dependencies = pkgs,
+                const test_exe = b.addTest(.{
+                    .root_source_file = .{ .path = "build/solution_runner.zig" },
+                    .target = target,
+                    .optimize = opt,
                 });
-                test_exe.setBuildMode(mode);
-                test_exe.setTarget(target);
+                test_exe.filter = "__allocations";
+                test_exe.addAnonymousModule("solution", .{
+                    .source_file = .{ .path = solution.path },
+                });
 
                 break :blk &test_exe.step;
             },
@@ -110,18 +111,7 @@ pub fn build(b: *std.build.Builder) !void {
     const filter = b.option([]const u8, "filter", "Test filter");
 
     const target = b.standardTargetOptions(.{});
-    const mode = b.standardReleaseOptions();
+    const opt = b.standardOptimizeOption(.{});
 
-    // lib tests
-    for (pkgs) |pkg| {
-        const test_step = b.step(pkg.name, b.fmt("Run {s} tests", .{pkg.name}));
-        const test_exe = b.addTest(pkg.source.path);
-        for (pkgs) |p| test_exe.addPackage(p);
-        test_exe.filter = filter;
-        test_exe.setBuildMode(mode);
-        test_exe.setTarget(target);
-        test_step.dependOn(&test_exe.step);
-    }
-
-    addSolutions(b, all, action, filter, mode, target, year);
+    addSolutions(b, all, action, filter, opt, target, year);
 }

@@ -16,11 +16,11 @@ fn parseState(
     _ = rows.next();
     while (rows.next()) |line| {
         const row = @ptrCast([*]const [4]u8, line)[0 .. line.len / 4 + 1];
-        for (row) |e, i| {
+        for (row, &stacks) |e, *stack| {
             if (e[1] != ' ') {
                 const node = try nodes.addOne(allocator);
                 node.data = e[1];
-                stacks[i].prepend(node);
+                stack.prepend(node);
             }
         }
     }
@@ -61,7 +61,7 @@ pub fn part1(allocator: mem.Allocator) ![9]u8 {
     }
 
     var ret: [9]u8 = undefined;
-    for (stacks) |stack, i| {
+    for (stacks, 0..) |stack, i| {
         ret[i] = if (stack.first) |node| node.data else ' ';
     }
     return ret;
@@ -87,7 +87,7 @@ pub fn part2(allocator: mem.Allocator) ![9]u8 {
     }
 
     var ret: [9]u8 = undefined;
-    for (stacks) |stack, i| {
+    for (stacks, 0..) |stack, i| {
         ret[i] = if (stack.first) |node| node.data else ' ';
     }
     return ret;
