@@ -1,5 +1,6 @@
 const std = @import("std");
 
+const Year = enum { @"2015", @"2021", @"2022" };
 const Solution = struct {
     name: []const u8,
     path: []const u8,
@@ -31,14 +32,14 @@ fn addSolutions(
     filter: ?[]const u8,
     opt: std.builtin.Mode,
     target: std.zig.CrossTarget,
-    year: []const u8,
+    year: Year,
 ) void {
-    const solutions = getSolutions(b, year);
+    const solutions = getSolutions(b, @tagName(year));
     for (solutions) |solution| {
-        const step = b.step(solution.name, b.fmt("Run solution for day {s} ({s})", .{ solution.name, year }));
+        const step = b.step(solution.name, b.fmt("Run solution for day {s} ({s})", .{ solution.name, @tagName(year) }));
         var config = b.addOptions();
         config.addOption([]const u8, "number", solution.name);
-        config.addOption([]const u8, "year", year);
+        config.addOption([]const u8, "year", @tagName(year));
 
         const action_step = switch (action) {
             inline .compile, .run => blk: {
@@ -93,12 +94,11 @@ fn addSolutions(
         all.dependOn(action_step);
     }
 }
-const Year = enum { @"2021", @"2022" };
 pub fn build(b: *std.build.Builder) !void {
-    const year = @tagName(b.option(Year, "year", "Select a year") orelse .@"2022");
+    const year = b.option(Year, "year", "Select a year") orelse .@"2022";
     // remove install and uninstall steps, and override default step.
     b.top_level_steps.clearRetainingCapacity();
-    const all = b.step("all", b.fmt("Run all solutions ({s})", .{year}));
+    const all = b.step("all", b.fmt("Run all solutions ({s})", .{@tagName(year)}));
     b.default_step = all;
 
     // option to decide what to do with the chosen solution.
