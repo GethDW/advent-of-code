@@ -29,11 +29,13 @@ fn AnswerType(comptime part: type) type {
 fn AnswerError(comptime part: type) type {
     return if (returnInfo(part).error_set) |E| E else error{};
 }
-inline fn run(comptime F: type, part: F, allocator: std.mem.Allocator) !AnswerType(F) {
+const input = if (config.example) @embedFile("example") else @embedFile("input");
+inline fn run(comptime F: type, comptime part: F, allocator: std.mem.Allocator) !AnswerType(F) {
     const args = switch (ArgsTuple(F)) {
-        Tuple(&[_]type{}) => .{}, // `struct {}` is still a struct.
-        Tuple(&[_]type{Allocator}) => .{allocator},
-        else => @compileError("solve arguments are either empty or std.mem.Allocator"),
+        // switching on tuples seems to be broken?
+        Tuple(&.{[]const u8}) => .{input},
+        Tuple(&.{ []const u8, Allocator }) => .{ input, allocator },
+        else => @compileError("solve arguments ([]const u8) or ([]const u8, std.mem.Allocator)"),
     };
     return switch (AnswerError(F)) {
         error{} => @call(.always_inline, part, args),
@@ -42,7 +44,7 @@ inline fn run(comptime F: type, part: F, allocator: std.mem.Allocator) !AnswerTy
 }
 const ArgsTuple = std.meta.ArgsTuple;
 const Tuple = std.meta.Tuple;
-fn solve(part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, writer: anytype) !void {
+fn solve(comptime part: anytype, gpa: Allocator, use_arena: bool, format: ?[]const Fmt, writer: anytype) !void {
     const F = @TypeOf(part);
     var arena = ArenaAllocator.init(gpa);
     defer arena.deinit();
@@ -197,7 +199,7 @@ const usage =
 const wants_arena: bool = if (@hasDecl(solution, "arena")) solution.arena else false;
 pub fn main() !void {
     var gpa = GeneralPurposeAllocator{};
-    defer if (gpa.deinit()) die("memory leak detected\n", .{}, 1);
+    defer if (gpa.deinit() != .ok) die("memory leak detected\n", .{}, 1);
     const allocator = gpa.allocator();
 
     var use_arena = wants_arena;

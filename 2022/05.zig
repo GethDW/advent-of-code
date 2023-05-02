@@ -1,5 +1,3 @@
-const input = @embedFile("05.txt");
-
 const std = @import("std");
 const mem = std.mem;
 
@@ -44,7 +42,7 @@ fn parseInstruction(inst: []const u8) !Inst {
     return ret;
 }
 
-pub fn part1(allocator: mem.Allocator) ![9]u8 {
+pub fn part1(input: []const u8, allocator: mem.Allocator) ![9]u8 {
     const setup_end = mem.indexOf(u8, input, "\n\n").?;
 
     var nodes = NodePool{};
@@ -67,7 +65,7 @@ pub fn part1(allocator: mem.Allocator) ![9]u8 {
     return ret;
 }
 
-pub fn part2(allocator: mem.Allocator) ![9]u8 {
+pub fn part2(input: []const u8, allocator: mem.Allocator) ![9]u8 {
     const setup_end = mem.indexOf(u8, input, "\n\n").?;
 
     var nodes = NodePool{};

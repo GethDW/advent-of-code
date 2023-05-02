@@ -1,8 +1,6 @@
-const input = @embedFile("01.txt");
-
 const std = @import("std");
 
-pub fn part1() u32 {
+pub fn part1(input: []const u8) u32 {
     var iter = std.mem.split(u8, input, "\n");
     var max: u32 = 0;
     var sum: u32 = 0;
@@ -18,7 +16,7 @@ pub fn part1() u32 {
     return max;
 }
 
-pub fn part2() !u32 {
+pub fn part2(input: []const u8) !u32 {
     var iter = std.mem.split(u8, input, "\n");
     var top: [4]u32 = .{ 0, 0, 0, 0 };
     var sum: u32 = 0;

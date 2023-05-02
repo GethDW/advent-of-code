@@ -1,8 +1,6 @@
-const input = @embedFile("04.txt");
-
 const std = @import("std");
 
-pub fn part1() !u32 {
+pub fn part1(input: []const u8) !u32 {
     var count: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     while (lines.next()) |line| {
@@ -22,7 +20,7 @@ pub fn part1() !u32 {
     return count;
 }
 
-pub fn part2() !u32 {
+pub fn part2(input: []const u8) !u32 {
     var count: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     while (lines.next()) |line| {

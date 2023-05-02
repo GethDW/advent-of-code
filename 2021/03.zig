@@ -1,8 +1,6 @@
-const input = @embedFile("03.txt");
-
 const std = @import("std");
 
-pub fn part1() u64 {
+pub fn part1(input: []const u8) u64 {
     var count: u32 = 0;
     var bit_counts = [1]u32{0} ** 16;
     var lines = std.mem.tokenize(u8, input, "\n");
@@ -54,7 +52,7 @@ inline fn filter(ns: []const u16, comptime most_common: bool, bit_count: u4, set
     }
     unreachable;
 }
-pub fn part2(allocator: std.mem.Allocator) !u64 {
+pub fn part2(input: []const u8, allocator: std.mem.Allocator) !u64 {
     var nums = std.ArrayList(u16).init(allocator);
     defer nums.deinit();
     var lines = std.mem.tokenize(u8, input, "\n");

@@ -1,8 +1,6 @@
-const input = @embedFile("05.txt");
-
 const std = @import("std");
 
-pub fn part1(allocator: std.mem.Allocator) !u32 {
+pub fn part1(input: []const u8, allocator: std.mem.Allocator) !u32 {
     var points = std.AutoArrayHashMap([2]u32, u32).init(allocator);
     defer points.deinit();
 
@@ -50,7 +48,7 @@ pub fn part1(allocator: std.mem.Allocator) !u32 {
     return count;
 }
 
-pub fn part2(allocator: std.mem.Allocator) !u32 {
+pub fn part2(input: []const u8, allocator: std.mem.Allocator) !u32 {
     var points = std.AutoArrayHashMap([2]u32, u32).init(allocator);
     defer points.deinit();
 

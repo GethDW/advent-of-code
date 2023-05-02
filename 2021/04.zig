@@ -1,5 +1,3 @@
-const input = @embedFile("04.txt");
-
 const std = @import("std");
 
 const BitSet = std.bit_set.IntegerBitSet(25);
@@ -37,7 +35,7 @@ const Board = struct {
     }
 };
 
-pub fn part1(allocator: std.mem.Allocator) !u32 {
+pub fn part1(input: []const u8, allocator: std.mem.Allocator) !u32 {
     var boards = std.ArrayList(Board).init(allocator);
     defer boards.deinit();
 
@@ -66,7 +64,7 @@ pub fn part1(allocator: std.mem.Allocator) !u32 {
     unreachable;
 }
 
-pub fn part2(allocator: std.mem.Allocator) !u32 {
+pub fn part2(input: []const u8, allocator: std.mem.Allocator) !u32 {
     var boards = std.ArrayList(Board).init(allocator);
     defer boards.deinit();
 

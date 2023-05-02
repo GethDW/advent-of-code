@@ -1,8 +1,6 @@
-const input = @embedFile("02.txt");
-
 const std = @import("std");
 
-pub fn part1() !u32 {
+pub fn part1(input: []const u8) !u32 {
     var x: u32 = 0;
     var y: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
@@ -24,7 +22,7 @@ pub fn part1() !u32 {
     return x * y;
 }
 
-pub fn part2() !u32 {
+pub fn part2(input: []const u8) !u32 {
     var x: u32 = 0;
     var y: u32 = 0;
     var aim: u32 = 0;

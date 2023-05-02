@@ -1,6 +1,4 @@
-const input = @embedFile("01.txt");
-
-pub fn part1() i64 {
+pub fn part1(input: []const u8) i64 {
     var floor: i64 = 0;
     for (input) |c| {
         switch (c) {
@@ -13,7 +11,7 @@ pub fn part1() i64 {
     return floor;
 }
 
-pub fn part2() usize {
+pub fn part2(input: []const u8) usize {
     var floor: i64 = 0;
     for (input, 1..) |c, i| {
         switch (c) {

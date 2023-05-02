@@ -1,5 +1,3 @@
-const input = @embedFile("02.txt");
-
 const std = @import("std");
 
 const Move = enum(u4) {
@@ -24,7 +22,7 @@ const Move = enum(u4) {
     }
 };
 
-pub fn part1() u32 {
+pub fn part1(input: []const u8) u32 {
     var score: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     while (lines.next()) |line| {
@@ -47,7 +45,7 @@ pub fn part1() u32 {
     return score;
 }
 
-pub fn part2() u32 {
+pub fn part2(input: []const u8) u32 {
     var score: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     while (lines.next()) |line| {

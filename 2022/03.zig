@@ -1,9 +1,7 @@
-const input = @embedFile("03.txt");
-
 const std = @import("std");
 
 const BitSet = std.bit_set.IntegerBitSet('z' - 'A' + 1);
-pub fn part1() u32 {
+pub fn part1(input: []const u8) u32 {
     var sum: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     while (lines.next()) |line| {
@@ -27,7 +25,7 @@ pub fn part1() u32 {
     return sum;
 }
 
-pub fn part2() u32 {
+pub fn part2(input: []const u8) u32 {
     var sum: u32 = 0;
     var lines = std.mem.tokenize(u8, input, "\n");
     loop: while (true) {
