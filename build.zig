@@ -102,7 +102,7 @@ fn addSolution(
     };
 }
 
-pub fn build(b: *std.build.Builder) !void {
+pub fn build(b: *std.Build) !void {
     // remove install and uninstall steps, and override default step.
     b.top_level_steps.clearRetainingCapacity();
     const year = b.option(Year, "year", "Select a year") orelse .@"2022";
