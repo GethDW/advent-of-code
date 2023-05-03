@@ -17,11 +17,11 @@ fn freeDir(dir: *Dir, allocator: std.mem.Allocator) void {
 }
 
 fn parseDir(input: []const u8, allocator: std.mem.Allocator) !Dir {
-    const Cwd = struct { name: []const u8, dir: *Dir };
-    var dir_stack = std.ArrayList(Cwd).init(allocator);
+    const CurrentDir = struct { name: []const u8, dir: *Dir };
+    var dir_stack = std.ArrayList(CurrentDir).init(allocator);
     defer dir_stack.deinit();
     var root = Dir{};
-    var cwd = Cwd{ .name = "/", .dir = &root };
+    var cwd = CurrentDir{ .name = "/", .dir = &root };
 
     var cmds = std.mem.split(u8, input, "$ ");
     while (cmds.next()) |cmd| {
@@ -29,7 +29,7 @@ fn parseDir(input: []const u8, allocator: std.mem.Allocator) !Dir {
             const dir_name = cmd["cd ".len .. cmd.len - 1];
             if (std.mem.eql(u8, dir_name, "/")) {
                 dir_stack.clearRetainingCapacity();
-                cwd = Cwd{ .name = "/", .dir = &root };
+                cwd = .{ .name = "/", .dir = &root };
             } else if (std.mem.eql(u8, dir_name, "..")) {
                 cwd = dir_stack.pop();
             } else {
@@ -59,55 +59,66 @@ fn parseDir(input: []const u8, allocator: std.mem.Allocator) !Dir {
 
     return root;
 }
+
+const Cwd = struct { dir: Dir.Iterator, size: usize };
 pub fn part1(input: []const u8, allocator: std.mem.Allocator) !usize {
     var root = try parseDir(input, allocator);
     defer freeDir(&root, allocator);
     var total: usize = 0;
-    var stack = std.ArrayList(struct { Dir.Iterator, []const u8, usize }).init(allocator);
+    var stack = std.ArrayList(Cwd).init(allocator);
     defer stack.deinit();
-    var it = root.iterator();
-    var size: usize = 0;
-    var name: []const u8 = "/";
+    var cwd = Cwd{ .dir = root.iterator(), .size = 0 };
     while (true) {
-        while (it.next()) |entry| {
+        while (cwd.dir.next()) |entry| {
             switch (entry.value_ptr.*) {
-                .file => |s| size += s,
+                .file => |s| cwd.size += s,
                 .dir => |dir| {
-                    try stack.append(.{ it, name, size });
-                    it = dir.iterator();
-                    name = entry.key_ptr.*;
-                    size = 0;
+                    try stack.append(cwd);
+                    cwd = .{ .dir = dir.iterator(), .size = 0 };
                 },
             }
         }
-        if (size <= 100_000) {
-            total += size;
+        if (cwd.size <= 100_000) {
+            total += cwd.size;
         }
-        const s = stack.popOrNull() orelse break;
-        it = s[0];
-        name = s[1];
-        size += s[2];
+        const new_cwd = stack.popOrNull() orelse break;
+        cwd = .{ .dir = new_cwd.dir, .size = new_cwd.size + cwd.size };
     }
     return total;
 }
 
-fn printDir(root: Dir, allocator: std.mem.Allocator) !void {
-    var stack = std.ArrayList(Dir.Iterator).init(allocator);
-    var it = root.iterator();
-    std.debug.print("- / (dir)\n", .{});
+pub fn part2(input: []const u8, allocator: std.mem.Allocator) !usize {
+    var root = try parseDir(input, allocator);
+    defer freeDir(&root, allocator);
+    const total: usize = 70_000_000;
+    const needed: usize = 30_000_000;
+    var sizes = std.ArrayList(usize).init(allocator);
+    defer sizes.deinit();
+    var stack = std.ArrayList(Cwd).init(allocator);
+    defer stack.deinit();
+    var cwd = Cwd{ .dir = root.iterator(), .size = 0 };
     while (true) {
-        while (it.next()) |entry| {
-            std.debug.print("  ", .{});
-            for (0..stack.items.len) |_| std.debug.print("  ", .{});
+        while (cwd.dir.next()) |entry| {
             switch (entry.value_ptr.*) {
-                .file => |size| std.debug.print("- {s} (file, size={d})\n", .{ entry.key_ptr.*, size }),
+                .file => |s| cwd.size += s,
                 .dir => |dir| {
-                    try stack.append(it);
-                    it = dir.iterator();
-                    std.debug.print("- {s} (dir)\n", .{entry.key_ptr.*});
+                    try stack.append(cwd);
+                    cwd = .{ .dir = dir.iterator(), .size = 0 };
                 },
             }
         }
-        it = stack.popOrNull() orelse break;
+        try sizes.append(cwd.size);
+        const new_cwd = stack.popOrNull() orelse break;
+        cwd = .{ .dir = new_cwd.dir, .size = new_cwd.size + cwd.size };
     }
+    const used = cwd.size;
+    const unused = total - used;
+    const to_remove = needed - unused;
+    var min: usize = std.math.maxInt(usize);
+    for (sizes.items) |size| {
+        if (size >= to_remove) {
+            min = @min(min, size);
+        }
+    }
+    return min;
 }
